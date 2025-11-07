@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventura en la Biblioteca del CIALC</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Iconos SVG simples
+        const BookIcon = () => (
+            <svg className="w-20 h-20 mx-auto mb-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+        );
+
+        const MapIcon = () => (
+            <svg className="mr-2 w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+        );
+
+        const TrophyIcon = () => (
+            <svg className="w-24 h-24 mx-auto mb-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+        );
+
+        const ClockIcon = () => (
+            <svg className="w-5 h-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        );
+
+        const UsersIcon = () => (
+            <svg className="w-5 h-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        );
+
+        const StarIcon = () => (
+            <svg className="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+        );
+
+        const CheckCircleIcon = () => (
+            <svg className="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        );
+
+        const CIALCLibraryGame = () => {
+            const [gameStarted, setGameStarted] = useState(false);
+            const [currentChallenge, setCurrentChallenge] = useState(0);
+            const [teamName, setTeamName] = useState('');
+            const [points, setPoints] = useState(0);
+            const [completedChallenges, setCompletedChallenges] = useState([]);
+            const [showResults, setShowResults] = useState(false);
+
+            const challenges = [
+                {
+                    id: 1,
+                    title: "🔍 El Código Secreto",
+                    zone: "Área de Catálogo",
+                    description: "Descifra el sistema de clasificación de la biblioteca",
+                    task: "Busca en el catálogo un libro sobre la Revolución Mexicana y anota su clasificación",
+                    question: "¿Qué significan las letras del inicio de la signatura topográfica?",
+                    options: [
+                        "El tema general del libro",
+                        "El nombre del autor",
+                        "El año de publicación",
+                        "El país de origen"
+                    ],
+                    correct: 0,
+                    points: 100,
+                    hint: "Las primeras letras indican la materia o disciplina"
+                },
+                {
+                    id: 2,
+                    title: "📜 Viaje en el Tiempo",
+                    zone: "Colecciones Especiales",
+                    description: "Explora documentos históricos de América Latina",
+                    task: "Observa una publicación antigua y responde",
+                    question: "¿Qué elementos te ayudan a identificar la época de un documento antiguo?",
+                    options: [
+                        "Solo la fecha de publicación",
+                        "Tipo de papel, tipografía, editorial y contexto histórico",
+                        "Únicamente el idioma",
+                        "El color de la portada"
+                    ],
+                    correct: 1,
+                    points: 150,
+                    hint: "Observa todos los detalles físicos del documento"
+                },
+                {
+                    id: 3,
+                    title: "🗺️ Cartógrafos Latinoamericanos",
+                    zone: "Mapoteca",
+                    description: "Descubre la colección de mapas históricos",
+                    task: "Localiza un mapa de América Latina del siglo XIX o XX",
+                    question: "¿Por qué son importantes los mapas históricos para la investigación?",
+                    options: [
+                        "Solo para decoración",
+                        "Muestran cambios territoriales, políticos y culturales a lo largo del tiempo",
+                        "Para hacer turismo",
+                        "No tienen importancia académica"
+                    ],
+                    correct: 1,
+                    points: 120,
+                    hint: "Los mapas son documentos históricos que reflejan su época"
+                },
+                {
+                    id: 4,
+                    title: "📰 Periodistas del Pasado",
+                    zone: "Hemeroteca",
+                    description: "Investiga en la colección de periódicos y revistas",
+                    task: "Encuentra una publicación periódica de algún país latinoamericano",
+                    question: "¿Qué tipo de información puedes encontrar en las hemerotecas?",
+                    options: [
+                        "Solo noticias actuales",
+                        "Opinión pública, eventos históricos, cultura y sociedad de diferentes épocas",
+                        "Únicamente publicidad",
+                        "Solo entretenimiento"
+                    ],
+                    correct: 1,
+                    points: 130,
+                    hint: "Las publicaciones periódicas son fuentes primarias de investigación"
+                },
+                {
+                    id: 5,
+                    title: "💻 Navegantes Digitales",
+                    zone: "Recursos Electrónicos",
+                    description: "Explora las bases de datos y recursos en línea",
+                    task: "Accede a una base de datos académica sobre América Latina",
+                    question: "¿Qué ventaja tienen las bases de datos digitales?",
+                    options: [
+                        "Son más bonitas que los libros",
+                        "Acceso remoto, búsquedas avanzadas y actualización constante",
+                        "Solo sirven para redes sociales",
+                        "No tienen ninguna ventaja"
+                    ],
+                    correct: 1,
+                    points: 110,
+                    hint: "Piensa en la accesibilidad y las herramientas de búsqueda"
+                },
+                {
+                    id: 6,
+                    title: "📚 Tesoro Literario",
+                    zone: "Acervo General",
+                    description: "Encuentra obras representativas de América Latina",
+                    task: "Localiza físicamente un libro de un autor latinoamericano famoso",
+                    question: "¿Cómo se organizan los libros en los estantes?",
+                    options: [
+                        "Por color y tamaño",
+                        "Por orden alfabético de autor",
+                        "Por sistema de clasificación temática y signatura topográfica",
+                        "De forma aleatoria"
+                    ],
+                    correct: 2,
+                    points: 100,
+                    hint: "Observa las etiquetas en los lomos de los libros"
+                }
+            ];
+
+            const handleStartGame = () => {
+                if (teamName.trim()) {
+                    setGameStarted(true);
+                }
+            };
+
+            const handleAnswer = (selectedIndex) => {
+                const challenge = challenges[currentChallenge];
+                const isCorrect = selectedIndex === challenge.correct;
+                
+                if (isCorrect) {
+                    setPoints(points + challenge.points);
+                    setCompletedChallenges([...completedChallenges, challenge.id]);
+                }
+
+                if (currentChallenge < challenges.length - 1) {
+                    setTimeout(() => setCurrentChallenge(currentChallenge + 1), 1500);
+                } else {
+                    setTimeout(() => setShowResults(true), 1500);
+                }
+            };
+
+            const resetGame = () => {
+                setGameStarted(false);
+                setCurrentChallenge(0);
+                setTeamName('');
+                setPoints(0);
+                setCompletedChallenges([]);
+                setShowResults(false);
+            };
+
+            const getPerformance = () => {
+                const percentage = (points / (challenges.reduce((sum, ch) => sum + ch.points, 0))) * 100;
+                if (percentage >= 90) return { level: "¡EXPERTO BIBLIOTECARIO!", color: "text-yellow-600", icon: "🏆" };
+                if (percentage >= 70) return { level: "Investigador Avanzado", color: "text-green-600", icon: "⭐" };
+                if (percentage >= 50) return { level: "Explorador Competente", color: "text-blue-600", icon: "📚" };
+                return { level: "Aprendiz Bibliotecario", color: "text-purple-600", icon: "🌱" };
+            };
+
+            if (!gameStarted) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
+                                <div className="text-center mb-8">
+                                    <BookIcon />
+                                    <h1 className="text-4xl font-bold text-gray-800 mb-4">
+                                        Aventura en la Biblioteca del CIALC
+                                    </h1>
+                                    <p className="text-lg text-gray-600 mb-2">
+                                        Centro de Investigaciones sobre América Latina y el Caribe
+                                    </p>
+                                    <p className="text-gray-500">
+                                        Un recorrido interactivo por el conocimiento latinoamericano
+                                    </p>
+                                </div>
+
+                                <div className="bg-indigo-50 rounded-xl p-6 mb-8">
+                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                                        <MapIcon /> ¿Cómo se juega?
+                                    </h2>
+                                    <ul className="space-y-3 text-gray-700">
+                                        <li className="flex items-start">
+                                            <span className="text-indigo-600 font-bold mr-2">1.</span>
+                                            <span>Forma tu equipo de exploradores (3-5 personas)</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-indigo-600 font-bold mr-2">2.</span>
+                                            <span>Visita cada zona de la biblioteca siguiendo los retos</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-indigo-600 font-bold mr-2">3.</span>
+                                            <span>Completa las tareas y responde las preguntas</span>
+                                        </li>
+                                        <li className="flex items-start">
+                                            <span className="text-indigo-600 font-bold mr-2">4.</span>
+                                            <span>Acumula puntos y conviértete en experto bibliotecario</span>
+                                        </li>
+                                    </ul>
+
+                                    <div className="mt-6 flex items-center justify-between bg-white rounded-lg p-4">
+                                        <div className="flex items-center">
+                                            <ClockIcon />
+                                            <span className="text-gray-700">Duración: 45-60 minutos</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <UsersIcon />
+                                            <span className="text-gray-700">3-5 jugadores</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <label className="block text-gray-700 font-semibold mb-2">
+                                        Nombre de tu equipo:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={teamName}
+                                        onChange={(e) => setTeamName(e.target.value)}
+                                        placeholder="Ej: Los Descubridores, Exploradores UNAM..."
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleStartGame}
+                                    disabled={!teamName.trim()}
+                                    className="w-full bg-indigo-600 text-white py-4 rounded-lg text-xl font-semibold hover:bg-indigo-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    🚀 Comenzar la Aventura
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (showResults) {
+                const performance = getPerformance();
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                        <div className="max-w-3xl mx-auto">
+                            <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 print-area">
+                                <div className="text-center mb-8">
+                                    <TrophyIcon />
+                                    <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                                        ¡Aventura Completada!
+                                    </h1>
+                                    <p className="text-2xl text-indigo-600 font-semibold mb-4">
+                                        Equipo: {teamName}
+                                    </p>
+                                </div>
+
+                                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-8 text-white text-center mb-8">
+                                    <p className="text-6xl mb-4">{performance.icon}</p>
+                                    <p className={`text-3xl font-bold mb-2 ${performance.color} bg-white rounded-lg py-2`}>
+                                        {performance.level}
+                                    </p>
+                                    <p className="text-5xl font-bold mt-4">{points} puntos</p>
+                                    <p className="text-lg mt-2">
+                                        de {challenges.reduce((sum, ch) => sum + ch.points, 0)} posibles
+                                    </p>
+                                </div>
+
+                                <div className="bg-gray-50 rounded-xl p-6 mb-8">
+                                    <h3 className="text-xl font-semibold mb-4 flex items-center text-gray-800">
+                                        <CheckCircleIcon />
+                                        Retos Completados
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {challenges.map((challenge) => (
+                                            <div key={challenge.id} className="flex items-center bg-white p-3 rounded-lg">
+                                                <StarIcon />
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{challenge.title}</p>
+                                                    <p className="text-sm text-gray-600">{challenge.zone}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-50 rounded-xl p-6 mb-8">
+                                    <h3 className="text-lg font-semibold mb-3 text-gray-800">
+                                        🎓 Aprendizajes Clave:
+                                    </h3>
+                                    <ul className="space-y-2 text-gray-700">
+                                        <li>✅ Sistema de clasificación bibliográfica</li>
+                                        <li>✅ Importancia de colecciones especiales</li>
+                                        <li>✅ Uso de recursos digitales académicos</li>
+                                        <li>✅ Organización de acervos bibliotecarios</li>
+                                        <li>✅ Investigación con fuentes primarias</li>
+                                    </ul>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={resetGame}
+                                        className="w-full bg-indigo-600 text-white py-4 rounded-lg text-xl font-semibold hover:bg-indigo-700 transition"
+                                    >
+                                        🔄 Jugar Nuevamente
+                                    </button>
+                                    <button
+                                        onClick={() => window.print()}
+                                        className="w-full bg-gray-600 text-white py-4 rounded-lg text-xl font-semibold hover:bg-gray-700 transition"
+                                    >
+                                        🖨️ Imprimir Certificado
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const challenge = challenges[currentChallenge];
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-white rounded-t-2xl shadow-lg p-4 md:p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <p className="text-sm text-gray-600">Equipo: <span className="font-semibold">{teamName}</span></p>
+                                    <p className="text-2xl font-bold text-indigo-600">{points} puntos</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm text-gray-600">Progreso</p>
+                                    <p className="text-2xl font-bold text-gray-800">
+                                        {currentChallenge + 1}/{challenges.length}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                                <div
+                                    className="bg-indigo-600 h-3 rounded-full transition-all duration-500"
+                                    style={{ width: `${((currentChallenge + 1) / challenges.length) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-white shadow-2xl rounded-b-2xl p-6 md:p-8">
+                            <div className="mb-6">
+                                <div className="inline-block bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+                                    📍 {challenge.zone}
+                                </div>
+                                <h2 className="text-3xl font-bold text-gray-800 mb-3">
+                                    {challenge.title}
+                                </h2>
+                                <p className="text-lg text-gray-600 mb-4">
+                                    {challenge.description}
+                                </p>
+                            </div>
+
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                                <p className="font-semibold text-gray-800 mb-2">🎯 Tu misión:</p>
+                                <p className="text-gray-700">{challenge.task}</p>
+                            </div>
+
+                            <div className="mb-6">
+                                <p className="text-xl font-semibold text-gray-800 mb-4">
+                                    {challenge.question}
+                                </p>
+                                <div className="space-y-3">
+                                    {challenge.options.map((option, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => handleAnswer(index)}
+                                            className="w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition"
+                                        >
+                                            <span className="font-semibold text-indigo-600 mr-3">
+                                                {String.fromCharCode(65 + index)}.
+                                            </span>
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 rounded-lg p-4 flex items-start">
+                                <span className="text-2xl mr-3">💡</span>
+                                <div>
+                                    <p className="font-semibold text-gray-800 mb-1">Pista:</p>
+                                    <p className="text-gray-700">{challenge.hint}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 text-center">
+                                <p className="text-sm text-gray-500">
+                                    ⭐ Valor: {challenge.points} puntos
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<CIALCLibraryGame />, document.getElementById('root'));
+    </script>
+</body>
+</html>
